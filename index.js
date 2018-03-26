@@ -81,7 +81,7 @@ let check = async function(n, cards) {
   }
   console.log("Result:");
   console.log("Good: ", sat / n);
-  console.log("Bad: ", (1 - sat0) / n);
+  console.log("Bad: ", (n - sat0) / n);
 }
 
 let main = async function() {
