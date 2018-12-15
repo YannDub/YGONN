@@ -18,7 +18,9 @@
     "brain": "^1.0.0",
     "brain.js": "^1.1.2",
     "get-pixels": "^3.3.0",
-    "jpeg-js": "^0.3.3",
-    "request": "^2.85.0"
+    "gpu.js": "^1.10.4",
+    "jpeg-js": "^0.3.4",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.5"
   }
 }

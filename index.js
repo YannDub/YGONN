@@ -1,50 +1,19 @@
 const brain = require("brain.js")
-    , request = require("request")
-    , getPixels = require("get-pixels")
+    , request = require("request-promise-native")
+    , {imread, imwrite} = require("./src/ImageProcessor")
+    , fs = require('fs');
 
-const hostListCard = "https://www.ygohub.com/api/all_cards";
+const hostListCard = "https://db.ygoprodeck.com";
 
 let net = new brain.recurrent.RNN();
 
-let getYGOHub = async function(url, map) {
-  return await new Promise((resolve, reject) => {
-    request(url, function (error, response, body) {
-      if(error) {
-        reject(error);
-      }
-      if(response.statusCode === 200) {
-        map ? resolve(map(body)) : resolve(body);
-      } else {
-        reject(response.statusCode)
-      }
-    });
-  })
+let getApiRequest = async function(url, map) {
+  let res = await request({uri: url});
+  return map(res);
 }
 
 let listAllCard = async function() {
-  return await getYGOHub('https://www.ygohub.com/api/all_cards', JSON.parse);
-}
-
-let getInfoFromCardName = async function(name) {
-  console.log(name);
-  let url = `https://www.ygohub.com/api/card_info?name=${name}`
-  return await getYGOHub(url, JSON.parse);
-}
-
-let getImageCard = async function(card) {
-  return await new Promise((resolve, reject) => {
-    getPixels(card.image_path, (err, pixels) => {
-      if(err) {
-        reject(err);
-      } else {
-        resolve(pixels);
-      }
-    })
-  });
-}
-
-let getRandomInt = function(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+  return await getApiRequest(`${hostListCard}/api/v2/cardinfo.php`, JSON.parse);
 }
 
 let training = async function(nbTrain, cards) {
@@ -84,10 +53,37 @@ let check = async function(n, cards) {
   console.log("Bad: ", (n - sat0) / n);
 }
 
+const downloadSpecificCard = async (id) => {
+  try {
+    if(!fs.existsSync('./static/' + id + '.jpg')) {
+      let options = {
+        uri: `https://ygoprodeck.com/pics/${id}.jpg`,
+        encoding: null
+      }
+      let res = await request.get(options);
+        fs.writeFileSync('./static/' + id + '.jpg', res);
+      }
+  } catch(err) {
+    console.error(err);
+  }
+}
+
 let main = async function() {
-  let allCards = (await listAllCard()).cards;
-  training(200, allCards);
-  check(10, allCards);
+  // let allCards = (await listAllCard()).cards;
+  // training(200, allCards);
+  // check(10, allCards);
+  let allCards = (await listAllCard());
+  let cardsById = []
+
+  for(let i = 0; i < allCards[0].length; i++) {
+    let elem = allCards[0][i];
+    cardsById[elem.id] = elem;
+    await downloadSpecificCard(elem.id);
+  }
+
+  //matrix : [channel, x, y]
+  let matrix = await imread(`./static/${Object.keys(cardsById)[0]}.jpg`);
+  imwrite(matrix, "res.jpg")
 }
 
 main();
